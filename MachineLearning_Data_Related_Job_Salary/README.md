@@ -10,6 +10,7 @@
 
 ## 접근 방법
 
+0. 연도/경력수준/고용형태/원격근무 비율별 급여 분포 박스플롯으로 초기 EDA 진행
 1. IQR 기반 이상치 제거 (607행 → 597행)
 2. log/Box-Cox 변환 중 Shapiro-Wilk 검정으로 더 정규분포에 가까운 변환 선택
 3. `pd.get_dummies(drop_first=True)` 원-핫 인코딩 (다중공선성 방지). 회귀 섹션에서 `drop_first=False`로 인코딩해 VIF가 수백만대로 폭증하는 버그를 VIF 진단으로 발견 → `drop_first=True`로 수정

@@ -10,3 +10,8 @@
 # Duplicate/backup files
 *의 사본
 *_사본.*
+
+# 포트폴리오 공개 대상이 아닌 것 (실수로 커밋되지 않도록 명시)
+포트폴리오 아닌/
+데사프_프로젝트/_포트폴리오제외/
+MachineLearning_Data_Related_Job_Salary/발표자료/

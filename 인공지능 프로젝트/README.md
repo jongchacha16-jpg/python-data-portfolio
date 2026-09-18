@@ -282,6 +282,10 @@ confidence = predictions[0][np.argmax(predictions)]      # 최대값만 꺼냄
 - `emoji_df.csv`, `emoji-test.txt` — 이모지 목록/메타데이터 (부가 시도용)
 - `emoji_testpage_screnshot.png` — 이모지 수집 과정 스크린샷
 
+> **서비스화 (2026-09-18)**: 이 파이프라인(재학습 가중치 + 매칭 규칙)은
+> [`../photo2emoji-service/`](../photo2emoji-service)에서 **FastAPI 서비스로 배포 가능한 형태**로
+> 제품화됐습니다 — `POST /predict` API, 웹 데모, pytest 10개, Docker 검증 포함.
+
 ## 재학습 결과 — 1단계 복구 완료 (2026-09-18)
 
 로컬에서 실제로 재학습했습니다 (Kaggle 데이터셋 다운로드 + TensorFlow 2.21.0, Apple M5 CPU —

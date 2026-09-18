@@ -1,0 +1,6 @@
+# 모델 가중치는 용량 문제로 저장소에 포함하지 않는다.
+# 재현: 인공지능 프로젝트/build/build_fer_retrain.py (README 참고)
+model/*.keras
+__pycache__/
+*.pyc
+.pytest_cache/

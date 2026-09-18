@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo2Emoji</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1b2433;--muted:#69768a;--line:#e3e8ef;--accent:#0f9b8e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;line-height:1.5}
+.wrap{max-width:640px;margin:40px auto;padding:0 20px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-radius:8px}
+button{margin-top:12px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.result{display:none}
+.emoji-big{font-size:5rem;text-align:center;margin:8px 0}
+.cls{text-align:center;font-size:1.1rem;margin-bottom:16px}
+.cls b{color:var(--accent)}
+.bar-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:.85rem}
+.bar-label{width:80px;color:var(--muted);text-align:right}
+.bar-track{flex:1;background:#eef2f7;border-radius:4px;height:18px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+.bar-fill.max{background:#c0492f}
+.bar-val{width:52px;font-variant-numeric:tabular-nums}
+.err{color:#c0492f;margin-top:12px}
+.foot{color:var(--muted);font-size:.78rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Photo2Emoji</h1>
+  <div class="sub">사진 속 표정을 7개 감정으로 분류하고, 어울리는 이모지를 골라줍니다.<br>
+  모델: FER 재학습 CNN (Run B, 전체 test 정확도 0.5954)</div>
+
+  <div class="card">
+    <input type="file" id="file" accept="image/*">
+    <button id="go" disabled>분석하기</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="card result" id="result">
+    <div class="emoji-big" id="emoji"></div>
+    <div class="cls"><b id="cls"></b> · 확신도 <span id="conf"></span></div>
+    <div id="bars"></div>
+  </div>
+
+  <div class="foot">서비스 품질의 상한은 1단계 CNN 정확도(0.5954)입니다 — 결과는 참고용입니다.</div>
+</div>
+<script>
+const fileEl = document.getElementById('file');
+const goEl = document.getElementById('go');
+const errEl = document.getElementById('err');
+const resEl = document.getElementById('result');
+const CLASSES = ['angry','disgusted','fearful','happy','neutral','sad','surprised'];
+
+fileEl.addEventListener('change', () => { goEl.disabled = !fileEl.files.length; });
+
+goEl.addEventListener('click', async () => {
+  errEl.textContent = '';
+  goEl.disabled = true;
+  goEl.textContent = '분석 중…';
+  try {
+    const fd = new FormData();
+    fd.append('file', fileEl.files[0]);
+    const r = await fetch('/predict', { method: 'POST', body: fd });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.detail || `요청 실패 (${r.status})`);
+    }
+    const d = await r.json();
+    document.getElementById('emoji').textContent = d.emoji || '❓';
+    document.getElementById('cls').textContent = d.predicted_class;
+    document.getElementById('conf').textContent = d.confidence.toFixed(2);
+    const bars = document.getElementById('bars');
+    bars.innerHTML = '';
+    const maxCls = d.predicted_class;
+    for (const c of CLASSES) {
+      const p = d.probabilities[c] ?? 0;
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `<div class="bar-label">${c}</div>
+        <div class="bar-track"><div class="bar-fill${c===maxCls?' max':''}" style="width:${(p*100).toFixed(1)}%"></div></div>
+        <div class="bar-val">${(p*100).toFixed(1)}%</div>`;
+      bars.appendChild(row);
+    }
+    resEl.style.display = 'block';
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    goEl.disabled = false;
+    goEl.textContent = '분석하기';
+  }
+});
+</script>
+</body>
+</html>

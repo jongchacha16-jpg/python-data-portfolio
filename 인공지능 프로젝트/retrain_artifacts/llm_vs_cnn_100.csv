@@ -1,0 +1,101 @@
+index,filename,true_label,cnn_pred,llm_pred,llm_reasoning
+312,angry/im38.png,angry,angry,angry,screaming wide open mouth
+453,angry/im506.png,angry,fearful,angry,furrowed brow grimace
+483,angry/im533.png,angry,angry,angry,tense mouth stern look
+545,angry/im59.png,angry,angry,angry,shouting intense eyes
+608,angry/im646.png,angry,angry,neutral,stern but calm no clear rage cue
+631,angry/im667.png,angry,angry,angry,scowling furrowed brow
+655,angry/im689.png,angry,sad,angry,shouting intense furrowed eyes
+667,angry/im7.png,angry,angry,surprised,baby wide open round mouth
+696,angry/im725.png,angry,angry,angry,bared teeth intense
+909,angry/im917.png,angry,angry,angry,furrowed gritted expression
+929,angry/im935.png,angry,neutral,neutral,looking down calm
+1003,disgusted/im4.png,disgusted,angry,disgusted,scrunched nose grimace
+1101,fearful/im105.png,fearful,sad,sad,looking down subdued
+1150,fearful/im15.png,fearful,fearful,fearful,eyes shut tight grimace
+1176,fearful/im173.png,fearful,sad,fearful,mouth open oh shape raised brows
+1296,fearful/im281.png,fearful,neutral,neutral,calm slightly worried
+1354,fearful/im333.png,fearful,fearful,fearful,wide eyes startled
+1387,fearful/im363.png,fearful,neutral,neutral,looking away calm
+1427,fearful/im4.png,fearful,happy,happy,smiling playful child
+1615,fearful/im569.png,fearful,fearful,fearful,mouth open brows raised
+1623,fearful/im576.png,fearful,fearful,fearful,animated face mouth wide open
+1718,fearful/im661.png,fearful,fearful,neutral,slight frown thoughtful
+1969,fearful/im888.png,fearful,surprised,surprised,mouth open hand near face
+2068,fearful/im977.png,fearful,fearful,fearful,wide mouth eyes hands near face
+2238,happy/im1128.png,happy,happy,happy,clear smile
+2327,happy/im1208.png,happy,happy,happy,smiling
+2362,happy/im124.png,happy,happy,happy,big grin
+2524,happy/im1386.png,happy,happy,happy,smiling
+2595,happy/im145.png,happy,surprised,surprised,mouth wide open eyebrows raised
+2618,happy/im1470.png,happy,happy,happy,baby smiling
+2632,happy/im1483.png,happy,happy,happy,smiling
+2647,happy/im1497.png,happy,happy,happy,laughing
+2778,happy/im1614.png,happy,happy,happy,smiling
+2859,happy/im1688.png,happy,angry,happy,slight smile
+2934,happy/im1755.png,happy,happy,happy,smiling
+3067,happy/im279.png,happy,happy,happy,child laughing
+3108,happy/im315.png,happy,neutral,neutral,calm slight smile ambiguous
+3120,happy/im326.png,happy,happy,happy,smiling
+3130,happy/im335.png,happy,happy,happy,smiling
+3151,happy/im354.png,happy,angry,happy,side profile slight smile
+3175,happy/im376.png,happy,happy,happy,smiling
+3196,happy/im395.png,happy,happy,happy,smiling
+3202,happy/im40.png,happy,happy,happy,slight smile
+3310,happy/im498.png,happy,happy,happy,smiling
+3328,happy/im513.png,happy,happy,neutral,baby ambiguous mouth open
+3356,happy/im539.png,happy,happy,happy,smiling
+3403,happy/im581.png,happy,happy,happy,smiling profile
+3550,happy/im713.png,happy,happy,happy,smiling
+3551,happy/im714.png,happy,happy,happy,smiling
+3641,happy/im796.png,happy,happy,neutral,dark image unclear expression
+3732,happy/im878.png,happy,happy,happy,smiling
+3876,neutral/im1005.png,neutral,neutral,happy,visible slight smile
+3899,neutral/im1026.png,neutral,neutral,neutral,calm expression
+3944,neutral/im1067.png,neutral,neutral,neutral,calm expression
+4040,neutral/im1153.png,neutral,neutral,neutral,calm expression
+4496,neutral/im455.png,neutral,neutral,neutral,calm expression
+4511,neutral/im469.png,neutral,neutral,neutral,baby calm face
+4570,neutral/im521.png,neutral,fearful,neutral,calm slightly worried
+4574,neutral/im525.png,neutral,sad,neutral,baby calm
+4635,neutral/im580.png,neutral,neutral,neutral,calm expression
+4794,neutral/im723.png,neutral,neutral,neutral,calm expression
+4831,neutral/im757.png,neutral,neutral,neutral,child calm
+4875,neutral/im797.png,neutral,neutral,neutral,calm expression
+4897,neutral/im816.png,neutral,neutral,neutral,stylized makeup calm
+4910,neutral/im828.png,neutral,neutral,neutral,calm expression
+4941,neutral/im856.png,neutral,neutral,neutral,calm expression
+4988,neutral/im899.png,neutral,sad,sad,looking down subdued
+5016,neutral/im923.png,neutral,surprised,surprised,wide eyes odd crop
+5089,neutral/im99.png,neutral,neutral,neutral,calm expression
+5217,sad/im1102.png,sad,sad,sad,downturned mouth
+5305,sad/im1182.png,sad,angry,angry,frowning tense
+5317,sad/im1193.png,sad,happy,sad,downturned serious
+5397,sad/im143.png,sad,fearful,sad,downturned serious
+5398,sad/im144.png,sad,fearful,fearful,child hand near mouth worried
+5417,sad/im161.png,sad,surprised,neutral,baby calm puzzled
+5479,sad/im217.png,sad,sad,sad,downturned subdued
+5503,sad/im239.png,sad,sad,sad,looking down sad
+5548,sad/im28.png,sad,sad,sad,hand near face eyes closed
+5551,sad/im282.png,sad,sad,sad,looking down subdued
+5576,sad/im304.png,sad,neutral,neutral,text overlay calm face
+5688,sad/im405.png,sad,neutral,sad,downturned subdued
+5770,sad/im48.png,sad,angry,sad,frowning serious older man
+5846,sad/im548.png,sad,angry,sad,baby scrunched about to cry
+5889,sad/im587.png,sad,neutral,sad,text overlay subdued
+5959,sad/im65.png,sad,sad,sad,painting style suffering expression
+5963,sad/im653.png,sad,neutral,sad,downturned mouth
+5965,sad/im655.png,sad,neutral,neutral,serious but not clearly sad
+6035,sad/im718.png,sad,angry,angry,frowning serious
+6082,sad/im760.png,sad,happy,neutral,hand near face contemplative
+6106,sad/im782.png,sad,angry,sad,downturned serious
+6315,sad/im970.png,sad,sad,sad,serious downturned
+6364,surprised/im113.png,surprised,surprised,surprised,wide eyes open mouth
+6441,surprised/im183.png,surprised,surprised,surprised,wide eyes open mouth
+6470,surprised/im209.png,surprised,surprised,surprised,open mouth hand near face
+6581,surprised/im309.png,surprised,surprised,surprised,wide open mouth and eyes
+6585,surprised/im312.png,surprised,surprised,surprised,wide eyes and mouth
+6731,surprised/im444.png,surprised,neutral,neutral,baby calm mouth slightly open
+6909,surprised/im604.png,surprised,angry,fearful,open mouth wide distressed
+6915,surprised/im61.png,surprised,surprised,surprised,wide eyes and mouth
+6917,surprised/im611.png,surprised,surprised,surprised,wide eyes open mouth

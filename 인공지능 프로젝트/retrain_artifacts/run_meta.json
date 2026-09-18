@@ -1,0 +1,26 @@
+{
+  "tf_version": "2.21.0",
+  "devices": [
+    "/physical_device:CPU:0"
+  ],
+  "class_indices": {
+    "angry": 0,
+    "disgusted": 1,
+    "fearful": 2,
+    "happy": 3,
+    "neutral": 4,
+    "sad": 5,
+    "surprised": 6
+  },
+  "run_a_train_n": 22968,
+  "run_a_val_n": 1432,
+  "run_a_seconds": 519.6156389713287,
+  "run_a_epochs_ran": 20,
+  "run_b_train_n": 25841,
+  "run_b_val_n": 2868,
+  "run_b_seconds": 1082.6162827014923,
+  "run_b_epochs_ran": 37,
+  "full_test_n": 7178,
+  "full_test_acc_run_a": 0.572025633881304,
+  "full_test_acc_run_b": 0.5954304820284202
+}

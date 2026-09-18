@@ -27,3 +27,9 @@ MachineLearning_Data_Related_Job_Salary/발표자료/
 
 # 노트북 실행 시 재생성되는 산출물
 인공지능 프로젝트/emoji_images_fixed/
+
+# Kaggle 원본 데이터셋 (~65MB — kaggle datasets download로 재현)
+인공지능 프로젝트/data/
+
+# 재학습 가중치 (각 ~7MB, 재현 가능 — README 참고. test_predictions.npz는 548KB라 커밋함)
+인공지능 프로젝트/retrain_artifacts/*.keras

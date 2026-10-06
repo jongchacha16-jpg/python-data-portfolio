@@ -14,13 +14,19 @@ def co(s): C.append(nbf.v4.new_code_cell(s.strip()))
 md("""
 # 와인 품질 회귀분석 — 재검증
 
-**원본**: 2023년 회귀분석 조별과제 (UCI Wine Quality, 적포도주 1,599건)
-**재검증**: 2026-09-08
+**원본**: 2023년 회귀분석 조별과제 (UCI Wine Quality)
+**재검증**: 2026-09-08 (1부), 2026-10-06 (2부)
 
-원본 분석은 노트북 5개에 흩어져 있고, 보고서에 적힌 결론 중 일부가 데이터와 맞지 않는다.
+원본 분석은 노트북 7개에 흩어져 있고, 거기엔 **서로 다른 두 개의 분석 트랙**이 들어 있다.
+
+| 트랙 | 노트북 | 접근 |
+|---|---|---|
+| **1부** | `Red_Wine(박찬종).ipynb`, `residuals.ipynb`, `wine.ipynb` | 적포도주 1,599건 단독. OLS·잔차진단·변수선택 중심의 통계적 접근 |
+| **2부** | `회귀분석최종코드.ipynb`, `회귀분석_팀플.ipynb` | 백+적 6,497건 병합. 리샘플링·변수변환·6개 모델 벤치마크의 ML 접근 |
+
 이 노트북은 원본을 대체하지 않는다. **원본이 무엇을 주장했는지 확인하고, 그 주장이 데이터에서 성립하는지 다시 재는 것**이 목적이다.
 
-검증 대상 4가지:
+### 1부 — 적포도주 단독 분석 (§1~§8)
 
 | # | 원본의 주장 | 결과 |
 |---|---|---|
@@ -28,6 +34,16 @@ md("""
 | 2 | `density`~`residual sugar` 고상관이 핵심 이슈 | §3 |
 | 3 | 다중공선성 처리가 이 분석의 핵심 과제 | §3 |
 | 4 | RandomForest R² = 1.0 | §5 |
+
+### 2부 — 백+적 병합 ML 분석 (§9~§13)
+
+| # | 원본의 주장/절차 | 결과 |
+|---|---|---|
+| 5 | 변환(log/sqrt/reciprocal)별로 성능을 비교 | §9 |
+| 6 | 업샘플링으로 불균형을 해소하고 RandomForest R² 0.712 달성 | §10 |
+| 7 | 상호작용 특성 추가가 예측 능력을 높인다 | §11 |
+| 8 | 하드코딩된 결과표·Lasso·부트스트랩 신뢰구간 | §12 |
+| 9 | 백+적을 병합해 분석하는 것이 타당한가 | §13 |
 """)
 
 co("""
@@ -38,10 +54,12 @@ import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.miscmodels.ordinal_model import OrderedModel
 from sklearn.model_selection import cross_val_score, KFold, GroupKFold, train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.dummy import DummyRegressor
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.utils import resample
 from sklearn.metrics import mean_squared_error, r2_score
 
 plt.rcParams['font.family'] = ['AppleGothic', 'DejaVu Sans']
@@ -396,9 +414,410 @@ md("""
 """)
 
 md("""
-## 9. 결론
+# 2부 — 백포도주 + 적포도주 병합 분석 (`회귀분석최종코드.ipynb`)
 
-### 원본의 네 가지 주장에 대한 판정
+여기서부터는 **다른 노트북**을 다룬다. 1부가 적포도주 1,599건을 OLS로 분석했다면,
+`회귀분석최종코드.ipynb`(49셀)와 그 전신 `회귀분석_팀플.ipynb`(31셀)는 백+적 6,497건을 병합하고
+리샘플링·변수변환·6개 모델(Linear/Ridge/Lasso/DecisionTree/RandomForest/GradientBoosting) 벤치마크로 접근한다.
+
+규모가 가장 크고 파일명도 "최종코드"지만, 1부의 재검증 범위 밖에 있었다. 여기서 같은 방식으로 다시 잰다.
+""")
+
+co("""
+w_, r_ = white.copy(), red.copy()
+w_['wine_type'], r_['wine_type'] = 0, 1
+merged = pd.concat([w_, r_], ignore_index=True)
+
+print(f'병합 데이터: {merged.shape}  (white {len(white)} + red {len(red)})')
+print(f"white 비중 {len(white)/len(merged)*100:.1f}%  /  red 비중 {len(red)/len(merged)*100:.1f}%")
+
+dup_w, dup_r = white.duplicated().sum(), red.duplicated().sum()
+dup_m = merged.drop(columns='wine_type').duplicated().sum()
+print(f'\\n완전 중복 행')
+print(f'  red   : {dup_r}행 ({dup_r/len(red)*100:.1f}%)    \\u2190 1부 §2에서 확인')
+print(f'  white : {dup_w}행 ({dup_w/len(white)*100:.1f}%)   \\u2190 적포도주보다 심하다')
+print(f'  병합  : {dup_m}행 ({dup_m/len(merged)*100:.1f}%)')
+""")
+
+md("""
+먼저 눈에 띄는 것: **백포도주의 중복이 937행(19.1%)으로 적포도주(240행, 15.0%)보다 많다.**
+1부에서 찾은 문제가 2부 데이터에서는 더 크다. §10·§13에서 이 영향을 측정한다.
+""")
+
+md("""
+## 9. 주장 검증 ⑤ — 변환 비교에서 타겟까지 함께 변환됨
+
+`회귀분석최종코드.ipynb`의 49셀 중 약 40셀이 같은 패턴을 반복한다:
+원본 / log / sqrt / reciprocal 네 가지 데이터셋에 6개 모델을 돌리고 R²를 나란히 비교한다.
+
+변환을 수행하는 함수는 다음과 같다.
+
+```python
+def apply_selected_transformations(df):
+    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+    positive_numeric_cols = [col for col in numeric_cols if (df[col] > 0).all()]
+    log_transformed_df = df.copy()
+    for col in positive_numeric_cols:
+        log_transformed_df[col] = np.log(df[col])
+    ...
+```
+
+`quality`는 `int64`이고 최솟값이 3이므로 **`positive_numeric_cols`에 포함된다.**
+그리고 다음 셀에서 `y = log_transformed_df['quality']` 로 그 값을 타겟으로 쓴다.
+
+즉 변환된 데이터셋의 R²는 **log(quality)를 예측한 R²**이고, 원본 데이터셋의 R²는 **quality를 예측한 R²**다.
+타겟이 서로 다르면 R²의 분모(타겟 분산)가 달라지므로 **두 수치는 같은 축에서 비교할 수 없다.**
+확인한다.
+""")
+
+co("""
+def apply_transform(df, kind):
+    num = df.select_dtypes(include=['float64', 'int64']).columns
+    pos = [c for c in num if (df[c] > 0).all()]
+    out = df.copy()
+    for c in pos:
+        if   kind == 'log':        out[c] = np.log(df[c])
+        elif kind == 'sqrt':       out[c] = np.sqrt(df[c])
+        elif kind == 'reciprocal': out[c] = 1 / df[c]
+    return out, pos
+
+_, pos_cols = apply_transform(red, 'log')
+print(f'변환 대상으로 선택된 열 {len(pos_cols)}개')
+print(f"  quality 포함 여부: {'quality' in pos_cols}   (dtype={red['quality'].dtype}, min={red['quality'].min()})")
+print()
+for kind in ['log', 'sqrt', 'reciprocal']:
+    t, _ = apply_transform(red, kind)
+    print(f"  {kind:10s} 후 타겟 범위: {t['quality'].min():.3f} ~ {t['quality'].max():.3f}"
+          f"   (원본 {red['quality'].min()} ~ {red['quality'].max()})")
+""")
+
+co("""
+MODELS = lambda: {
+    'LinearRegression': LinearRegression(),
+    'RandomForest':     RandomForestRegressor(n_estimators=100, random_state=RANDOM_STATE, n_jobs=-1),
+}
+
+def split_fit(d, target_from=None):
+    \"\"\"target_from이 주어지면 타겟만 그 시리즈로 되돌린다(= 특성만 변환).\"\"\"
+    d = d.copy()
+    if target_from is not None:
+        d['quality'] = target_from.values
+    X, y = d.drop(columns='quality'), d['quality']
+    Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, random_state=RANDOM_STATE)
+    return {n: r2_score(yte, m.fit(Xtr, ytr).predict(Xte)) for n, m in MODELS().items()}
+
+rows = []
+for kind in ['원본', 'log', 'sqrt', 'reciprocal']:
+    d = red.copy() if kind == '원본' else apply_transform(red, kind)[0]
+    bad  = split_fit(d)                              # 원본 절차: 타겟도 변환됨
+    fair = split_fit(d, target_from=red['quality'])  # 공정 비교: 타겟 고정
+    rows.append({'변환': kind,
+                 '원본 절차 Linear': f"{bad['LinearRegression']:+.3f}",
+                 '원본 절차 RF':     f"{bad['RandomForest']:+.3f}",
+                 '타겟 고정 Linear': f"{fair['LinearRegression']:+.3f}",
+                 '타겟 고정 RF':     f"{fair['RandomForest']:+.3f}"})
+print('적포도주 — 변환별 R² (80/20 분할)')
+print(pd.DataFrame(rows).to_string(index=False))
+""")
+
+md("""
+**결론 ⑤**: 원본 절차에서는 변환에 따라 R²가 눈에 띄게 움직인다
+(Linear 0.403 → 0.392 → 0.402 → 0.351, RF 0.539 → 0.502 → 0.522 → 0.431).
+그래서 "변환이 성능에 영향을 준다"는 결론이 나온다.
+
+그런데 **타겟을 원본 `quality`로 고정하고 특성만 변환하면 그 차이가 사라진다**
+(Linear 0.403 / 0.409 / 0.408 / 0.399 — 폭 0.010). RF는 소수점 셋째 자리까지 거의 동일하다.
+
+즉 원본이 관찰한 "변환 효과"는 특성 변환의 효과가 아니라 **타겟이 함께 변환되어 R²의 기준이 바뀐 것**이다.
+`reciprocal`에서 가장 크게 떨어진 것도 1/quality가 0.125~0.333의 좁은 범위로 압축되기 때문이고,
+변환이 모델에 불리해서가 아니다. 이 노트북의 변환 비교 셀 약 40개가 모두 같은 문제를 공유한다.
+""")
+
+md("""
+## 10. 주장 검증 ⑥ — 업샘플링을 분할 **전에** 수행
+
+`회귀분석_팀플.ipynb`는 레드와 화이트의 개수 차이를 업샘플링으로 맞춘 뒤 RandomForest R² 0.712를 보고한다.
+코드 순서는 이렇다.
+
+```python
+red_wine_upsampled = resample(red_wine, replace=True,
+                              n_samples=len(white_wine), random_state=123)
+combined_resampled = pd.concat([white_wine, red_wine_upsampled])
+X = combined_resampled.drop('quality', axis=1)
+...
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, ...)
+```
+
+`replace=True`로 1,599행을 4,898행까지 복제한 **뒤에** 분할한다.
+따라서 같은 원본 행의 복제본이 훈련과 테스트 양쪽에 들어간다. 얼마나 들어가는지 센다.
+""")
+
+co("""
+red_up = resample(merged[merged.wine_type == 1], replace=True,
+                  n_samples=int((merged.wine_type == 0).sum()), random_state=123)
+comb_leak = pd.concat([merged[merged.wine_type == 0], red_up]).reset_index(drop=True)
+
+key = comb_leak.astype(str).agg('|'.join, axis=1)
+idx_tr, idx_te = train_test_split(np.arange(len(comb_leak)), test_size=0.2, random_state=RANDOM_STATE)
+twin = key.iloc[idx_te].isin(set(key.iloc[idx_tr])).sum()
+
+print(f'업샘플링 후: {len(comb_leak)}행  (화이트 {len(white)} + 레드 복제 {len(red_up)})')
+print(f'그중 고유 조합: {len(comb_leak.drop_duplicates())}행')
+rep = red_up.astype(str).agg('|'.join, axis=1).value_counts()
+print(f'레드 행 복제 횟수: 평균 {rep.mean():.2f}회, 최대 {rep.max()}회')
+print(f'\\n테스트 {len(idx_te)}행 중 훈련에 동일 행이 존재: {twin}행 ({twin/len(idx_te)*100:.1f}%)')
+print('  (1부 §6의 적포도주 단독 교차검증에서는 24.1%였다)')
+""")
+
+co("""
+Xm, ym = merged.drop(columns='quality'), merged['quality']
+Xtr_m, Xte_m, ytr_m, yte_m = train_test_split(Xm, ym, test_size=0.2, random_state=RANDOM_STATE)
+
+# (b) 분할 후 훈련셋만 업샘플링
+_tr = Xtr_m.copy(); _tr['quality'] = ytr_m
+_tr_up = resample(_tr[_tr.wine_type == 1], replace=True,
+                  n_samples=int((_tr.wine_type == 0).sum()), random_state=123)
+tr_b = pd.concat([_tr[_tr.wine_type == 0], _tr_up])
+
+def fit_eval(Xtr, ytr, Xte, yte):
+    return {n: r2_score(yte, m.fit(Xtr, ytr).predict(Xte)) for n, m in MODELS().items()}
+
+Xa, ya = comb_leak.drop(columns='quality'), comb_leak['quality']
+Xtr_a, Xte_a, ytr_a, yte_a = train_test_split(Xa, ya, test_size=0.2, random_state=RANDOM_STATE)
+
+res = {
+ '(a) 업샘플링 → 분할  [원본 절차]': fit_eval(Xtr_a, ytr_a, Xte_a, yte_a),
+ '(b) 분할 → 훈련셋만 업샘플링':      fit_eval(tr_b.drop(columns='quality'), tr_b['quality'], Xte_m, yte_m),
+ '(c) 리샘플링 없음':                 fit_eval(Xtr_m, ytr_m, Xte_m, yte_m),
+}
+out = pd.DataFrame(res).T.round(3)
+out.columns = [f'{c} R²' for c in out.columns]
+print('동일한 병합 데이터에 절차만 바꿔 측정'); print(out.to_string())
+print(f"\\n원본 보고 값: RandomForest R² 0.712  /  (a) 재현값 {res['(a) 업샘플링 → 분할  [원본 절차]']['RandomForest']:.3f}")
+""")
+
+md("""
+**결론 ⑥**: 원본 절차 (a)를 그대로 재현하면 RandomForest R² **0.707**이 나온다 — 보고서의 0.712와 사실상 일치한다.
+Linear도 0.316으로 보고서의 0.317과 맞는다. 절차가 정확히 재현된 것이다.
+
+그런데 순서만 바로잡으면:
+
+- (b) **분할 후 훈련셋만** 업샘플링 → RF **0.548**
+- (c) 리샘플링을 아예 안 함 → RF **0.553**
+
+**0.712가 아니라 0.55 수준이다.** 차이 약 0.16은 모델 성능이 아니라 복제본이 테스트로 새어 들어간 양이다.
+테스트 행의 **59.6%**가 훈련에 동일한 행을 갖고 있었다 — 레드 행은 평균 3.75회, 최대 15회까지 복제된다.
+
+또한 (b)와 (c)가 거의 같다는 점에 주목할 만하다. **업샘플링은 올바르게 수행해도 이득이 없었다.**
+이유는 §13에서 다룬다.
+""")
+
+md("""
+### 덧붙임 — 리샘플링의 대상이 타겟이 아니다
+
+더 근본적인 문제가 있다. 이 과제의 타겟은 `quality`인데, 코드가 균형을 맞춘 것은 `wine_type`(레드/화이트)이다.
+원본 코드의 주석도 스스로 확신하지 못한다.
+
+```python
+# 데이터셋의 클래스 불균형 해결 (예: 'wine_type' 컬럼을 사용한다고 가정)
+```
+
+업/다운샘플링은 **불균형 분류**에서 타겟 클래스 비율을 맞추는 처방이다.
+여기서는 (1) 문제가 분류가 아니라 회귀이고, (2) 균형을 맞춘 변수가 타겟이 아니라 특성이다.
+1부 §2에서 확인한 진짜 불균형 — `quality`가 5·6등급에 82.5% 몰려 있는 것 — 은 이 처리로 전혀 해소되지 않는다.
+""")
+
+md("""
+## 11. 주장 검증 ⑦ — 상호작용 특성 추가의 효과
+
+원본은 상관관계가 높은 변수 쌍으로 합·곱·역수 특성 6개를 만들고,
+"특성 추가가 모델의 예측 능력에 긍정적인 영향을 미칠 수 있음을 확인할 수 있습니다"라고 적는다.
+
+그 판단의 근거가 된 수치는 §10에서 확인한 누수된 절차에서 나온 것이다.
+누수를 제거하고 — 중복 행을 같은 폴드로 묶는 `GroupKFold`로 — 다시 잰다.
+""")
+
+co("""
+def add_interactions(d):
+    d = d.copy()
+    d['acidity_sugar_sum']  = d['fixed acidity'] + d['residual sugar']
+    d['sugar_sulfur_sum']   = d['residual sugar'] + d['free sulfur dioxide']
+    d['inverse_density']    = 1 / d['density']
+    d['acidity_sugar_interaction']  = d['fixed acidity'] * d['residual sugar']
+    d['sulfur_dioxide_interaction'] = d['free sulfur dioxide'] * d['total sulfur dioxide']
+    d['inverse_alcohol_density_interaction'] = 1 / (d['density'] * d['alcohol'])
+    return d
+
+base_cols = [c for c in merged.columns if c not in ('quality', 'wine_type')]
+grp_m = merged.drop(columns='wine_type').groupby(base_cols + ['quality'], sort=False).ngroup()
+
+rows = []
+for label, d in [('특성 추가 전', merged), ('특성 추가 후', add_interactions(merged))]:
+    Xa = d.drop(columns=['quality', 'wine_type']); ya = d['quality']
+    row = {'데이터': label, '특성 수': Xa.shape[1]}
+    for n, m in [('OLS', LinearRegression()),
+                 ('RandomForest', RandomForestRegressor(n_estimators=300, random_state=RANDOM_STATE, n_jobs=-1))]:
+        s = cross_val_score(m, Xa, ya, cv=GroupKFold(5), groups=grp_m, scoring='r2')
+        row[n] = f'{s.mean():+.4f}'
+    rows.append(row)
+print('GroupKFold(5) — 중복 행을 폴드로 분리한 R²')
+print(pd.DataFrame(rows).to_string(index=False))
+""")
+
+md("""
+**결론 ⑦**: 특성 6개를 추가해도 OLS는 +0.287 → +0.296 (**+0.010**), RandomForest는 +0.384 → +0.382 (**−0.002**)다.
+
+사실상 변화가 없다. 추가된 특성이 기존 변수의 합·곱·역수라 **새로운 정보를 담고 있지 않기 때문**이다
+(`inverse_density`는 `density`의 단조변환이고, RandomForest는 단조변환에 불변이다).
+
+원본이 관찰한 "특성 추가의 긍정적 영향"은 §10의 누수가 만들어낸 변동이었다.
+""")
+
+md("""
+## 12. 주장 검증 ⑧ — 수치를 신뢰할 수 없게 만드는 절차상 결함 세 가지
+
+주장 자체는 아니지만, 2부 노트북의 결과를 그대로 인용할 수 없게 만드는 문제들이다.
+
+### ① 결과표가 하드코딩되어 있고, 두 사본이 서로 다르다
+
+`보고서 작성자료(wine).ipynb`와 `회귀분석_팀플.ipynb` 둘 다 모델 성능표를 **딕셔너리에 직접 타이핑**해
+막대그래프만 그린다. 계산하는 코드가 없다. 그런데 두 표의 값이 어긋난다.
+
+| 모델 | `보고서 작성자료(wine)` | `회귀분석_팀플` CODE 25 |
+|---|---|---|
+| LinearRegression | MSE 0.495 / R² 0.316 | MSE 0.494 / R² 0.317 |
+| **DecisionTree** | **MSE 0.353 / R² 0.512** | **MSE 0.412 / R² 0.431** |
+| RandomForest | MSE 0.210 / R² 0.710 | MSE 0.208 / R² 0.712 |
+
+DecisionTree는 R²가 0.512 대 0.431로 **0.08 차이**가 난다. 반올림 오차가 아니라 서로 다른 실행 회차의 값이다.
+원인은 명확하다 — 원본 코드에서 `DecisionTreeRegressor()`, `RandomForestRegressor()`,
+`GradientBoostingRegressor()`에 **`random_state`가 지정되어 있지 않다.** 실행할 때마다 결과가 달라지므로
+어느 쪽도 재현할 수 없고, 발표에 쓰인 차트는 노트북으로 되돌아가 확인할 방법이 없다.
+
+(이 재검증 노트북은 모든 모델에 `random_state=42`를 지정한다.)
+""")
+
+co("""
+# ② Lasso R² ≈ -0.000 의 원인
+Xl, yl = comb_leak.drop(columns='quality'), comb_leak['quality']
+Xtr_l, Xte_l, ytr_l, yte_l = train_test_split(Xl, yl, test_size=0.2, random_state=RANDOM_STATE)
+
+for name, m in [('Lasso() 기본 alpha=1.0',          Lasso()),
+                ('표준화 + Lasso() alpha=1.0',       make_pipeline(StandardScaler(), Lasso())),
+                ('표준화 + Lasso(alpha=0.01)',       make_pipeline(StandardScaler(), Lasso(alpha=0.01)))]:
+    m.fit(Xtr_l, ytr_l)
+    print(f'  {name:32s} R² = {r2_score(yte_l, m.predict(Xte_l)):+.4f}')
+
+l0 = Lasso().fit(Xtr_l, ytr_l)
+print(f'\\n  기본 Lasso의 0이 아닌 계수: {int((l0.coef_ != 0).sum())} / {len(l0.coef_)}개')
+""")
+
+md("""
+### ② Lasso의 R² ≈ 0은 모델의 성능이 아니다
+
+원본은 "Lasso 회귀는 0에 가까운 R² 값을 가지며, 이는 모델이 데이터의 변동성을 거의 설명하지 못함을 의미합니다"라고
+모델에 대한 판정으로 적는다. 실제로는 **기본 `alpha=1.0`에서 12개 계수가 전부 0으로 수축되어
+절편(평균)만 예측하는 모델이 된 것**이다.
+
+흔히 "표준화를 안 해서"라고 설명하지만, 측정해보면 표준화만으로는 바뀌지 않는다(여전히 −0.0000).
+`quality`의 분산이 약 0.78로 작아서, alpha=1.0의 페널티가 어떤 척도에서도 모든 계수를 0으로 만든다.
+`alpha=0.01`로 낮추면 **+0.308**로 Ridge·Linear와 같은 수준이 된다.
+
+즉 이 수치는 Lasso가 이 데이터에 부적합하다는 증거가 아니라, **하이퍼파라미터를 조정하지 않았다는 기록**이다.
+
+### ③ 부트스트랩 신뢰구간이 훈련오차의 구간이다
+
+`회귀분석_팀플.ipynb` 마지막 셀의 함수는 다음과 같다.
+
+```python
+def bootstrap_confidence_interval(model, X, y, n_bootstrap=1000, ci=95):
+    for _ in range(n_bootstrap):
+        X_sample, y_sample = resample(X, y)
+        model.fit(X_sample, y_sample)
+        y_pred = model.predict(X)        # ← 건네받은 X 그대로
+        mse = mean_squared_error(y, y_pred)
+```
+
+부트스트랩 표본으로 적합한 뒤 **그 표본이 아니라 입력 전체 `X`로 예측**하고, 호출부는 `X_train`을 넘긴다.
+부트스트랩 표본은 평균적으로 원본의 63.2%를 포함하므로, 예측 대상의 대부분이 학습에 쓰인 행이다.
+따라서 이 구간은 일반화 성능의 신뢰구간이 아니라 **훈련오차에 가까운 값의 구간**이며, 실제보다 좁고 낙관적이다.
+(1,000회 RandomForest 적합이 필요해 여기서 재실행하지는 않았다 — 코드만으로 판정 가능한 결함이다.)
+""")
+
+md("""
+## 13. 주장 검증 ⑨ — 백+적을 병합하는 것이 타당한가
+
+2부의 전제 자체를 확인한다. 레드와 화이트를 하나의 데이터셋으로 합쳐 모델을 적합하는 것이
+각각 따로 적합하는 것보다 나은가. 누수 없이 비교한다.
+""")
+
+co("""
+rows = []
+for label, d in [('화이트 단독', white), ('적포도주 단독', red)]:
+    Xa, ya = d.drop(columns='quality'), d['quality']
+    g = d.groupby(list(d.columns), sort=False).ngroup()
+    row = {'데이터셋': label, 'N': len(d)}
+    for n, m in [('OLS', LinearRegression()),
+                 ('RandomForest', RandomForestRegressor(n_estimators=300, random_state=RANDOM_STATE, n_jobs=-1))]:
+        s = cross_val_score(m, Xa, ya, cv=GroupKFold(5), groups=g, scoring='r2')
+        row[n] = f'{s.mean():+.3f}'
+    rows.append(row)
+
+Xa, ya = merged.drop(columns=['quality', 'wine_type']), merged['quality']
+row = {'데이터셋': '병합 (리샘플링 없음)', 'N': len(merged)}
+for n, m in [('OLS', LinearRegression()),
+             ('RandomForest', RandomForestRegressor(n_estimators=300, random_state=RANDOM_STATE, n_jobs=-1))]:
+    s = cross_val_score(m, Xa, ya, cv=GroupKFold(5), groups=grp_m, scoring='r2')
+    row[n] = f'{s.mean():+.3f}'
+rows.append(row)
+print('GroupKFold(5) R² — 중복 분리'); print(pd.DataFrame(rows).to_string(index=False))
+
+print('\\n두 품종의 상관 구조가 같은가 (1부 §3에서 확인한 쌍):')
+for nm, d in [('red  ', red), ('white', white)]:
+    print(f"  {nm} density ~ residual sugar = {d['density'].corr(d['residual sugar']):+.3f}")
+""")
+
+co("""
+rows = []
+for nm, m in [('OLS', LinearRegression()),
+              ('RandomForest', RandomForestRegressor(n_estimators=300, random_state=RANDOM_STATE, n_jobs=-1))]:
+    a = cross_val_score(m, merged.drop(columns=['quality','wine_type']), merged['quality'],
+                        cv=KFold(5, shuffle=True, random_state=RANDOM_STATE), scoring='r2')
+    b = cross_val_score(m, merged.drop(columns=['quality','wine_type']), merged['quality'],
+                        cv=GroupKFold(5), groups=grp_m, scoring='r2')
+    rows.append({'모델': nm, '일반 KFold': f'{a.mean():+.3f} ± {a.std():.3f}',
+                 'GroupKFold(중복 분리)': f'{b.mean():+.3f} ± {b.std():.3f}',
+                 '차이': f'{b.mean()-a.mean():+.3f}'})
+print('병합 데이터의 중복 행 영향 (1부 §6과 같은 측정)')
+print(pd.DataFrame(rows).to_string(index=False))
+""")
+
+md("""
+**결론 ⑨**: 병합이 주는 이득이 사실상 없다.
+
+| 데이터셋 | N | OLS R² | RandomForest R² |
+|---|---|---|---|
+| 화이트 단독 | 4,898 | +0.271 | +0.372 |
+| 적포도주 단독 | 1,599 | +0.334 | +0.364 |
+| 병합 | 6,497 | +0.287 | +0.384 |
+
+병합 모델은 화이트 단독보다 RandomForest 기준 **+0.012**, 적포도주 단독보다 **+0.020** 높다.
+표본이 적포도주 기준 4배로 늘었는데 얻은 것이 그 정도다. OLS는 오히려 적포도주 단독(+0.334)이 병합(+0.287)보다 높다.
+
+이유는 1부 §3에서 이미 나왔다. **두 품종은 변수 간 구조가 다르다** —
+`density ~ residual sugar` 상관이 적포도주 +0.355, 백포도주 +0.839다.
+서로 다른 관계를 가진 두 모집단에 하나의 계수 집합을 강요하면, 어느 쪽에도 맞지 않는 평균적인 모델이 된다.
+1부에서 "보고서가 백포도주 상관을 적포도주 분석에 서술했다"고 지적한 그 구조적 차이가,
+2부에서는 "두 품종을 병합한 것" 자체의 타당성 문제로 되돌아온다.
+
+그리고 병합 데이터에서도 중복 행 문제는 그대로다 — `GroupKFold`로 분리하면
+RandomForest가 **−0.142** 떨어지고 OLS는 −0.003에 그친다. 1부 §6의 적포도주 결과(−0.129 / −0.009)와 같은 양상이다.
+""")
+
+md("""
+## 14. 결론
+
+### 1부 — 적포도주 단독 분석의 주장 판정
 
 | 원본의 주장 | 재검증 결과 |
 |---|---|
@@ -407,7 +826,22 @@ md("""
 | 다중공선성 처리가 핵심 과제 | **아님.** 최대 VIF 7.77로 기준 10 미만 |
 | RandomForest R² = 1.0 | **무효.** `quality`가 특성에 포함된 타깃 누수. 정상 학습 시 0.493, 중복을 폴드로 분리하면 0.364 |
 
+### 2부 — 백+적 병합 ML 분석의 주장 판정
+
+| 원본의 주장/절차 | 재검증 결과 |
+|---|---|
+| 변환(log/sqrt/reciprocal)별 성능 비교 | **비교 불가.** 변환 함수가 `quality`까지 변환해 서로 다른 타겟의 R²를 나란히 놓았음. 타겟 고정 시 변환 효과 소멸(Linear 0.403 vs 0.409/0.408/0.399) |
+| 업샘플링 후 RandomForest R² 0.712 | **누수.** 복제 후 분할이라 테스트의 **59.6%**가 훈련에 쌍둥이 보유. 순서만 바로잡으면 **0.548**, 리샘플링 없으면 0.553 |
+| 리샘플링으로 불균형 해소 | **대상이 틀림.** 타겟은 `quality`인데 균형을 맞춘 건 `wine_type`(특성). 실제 불균형(5·6등급 82.5%)은 그대로 |
+| 상호작용 특성 추가가 성능 향상 | **효과 없음.** GroupKFold 기준 OLS +0.010, RandomForest **−0.002**. 기존 변수의 합·곱·역수라 새 정보가 없음 |
+| Lasso R² ≈ 0 = "모델이 설명 못 함" | **모델 판정이 아님.** alpha=1.0에서 12개 계수 전부 0. 표준화해도 동일, alpha=0.01이면 **+0.308** |
+| 발표용 결과표 | **재현 불가.** 하드코딩된 두 사본이 불일치(DecisionTree R² 0.512 vs 0.431). 트리 모델에 `random_state` 미지정 |
+| 부트스트랩 95% 신뢰구간 | **훈련오차의 구간.** 부트스트랩 표본으로 적합한 뒤 입력 전체로 예측 — 일반화 성능이 아님 |
+| 백+적 병합 분석 | **이득 거의 없음.** RF 병합 +0.384 vs 화이트 단독 +0.372 / 적포도주 단독 +0.364. 표본 4배에 +0.012 |
+
 ### 확인된 수치
+
+**1부 — 적포도주 1,599행**
 
 | 항목 | 값 |
 |---|---|
@@ -419,22 +853,46 @@ md("""
 | 실제 영향력 1~3위 | alcohol +0.294 / volatile acidity −0.194 / sulphates +0.155 |
 | 완전 중복 행 | 240행 (15.0%) — 교차검증 시 테스트의 24.1%가 훈련에 존재 |
 
+**2부 — 백+적 병합 6,497행**
+
+| 항목 | 값 |
+|---|---|
+| 업샘플링→분할 (원본 절차) | RF **0.707** / Linear 0.316 — 보고서 0.712 / 0.317 재현 |
+| 분할→훈련셋만 업샘플링 | RF **0.548** |
+| 리샘플링 없음 | RF **0.553** |
+| 원본 절차의 누수량 | 테스트 1,960행 중 **1,169행(59.6%)**이 훈련에 동일 행 보유. 레드 행 평균 3.75회(최대 15회) 복제 |
+| 완전 중복 행 | white **937행(19.1%)** / red 240행(15.0%) / 병합 1,179행 |
+| 중복 분리(GroupKFold) 영향 | RandomForest **−0.142**, OLS −0.003 |
+| 단독 vs 병합 (GroupKFold) | 화이트 RF +0.372 / 적포도주 +0.364 / 병합 **+0.384** |
+
 ### 배운 것
 
 **1. 단위가 다른 계수의 크기를 비교하면 안 된다.**
-이 분석의 결론 전체가 여기서 어긋났다. `density`가 1위로 보인 것은 순전히 단위 때문이고, 표준화 한 줄이면 드러나는 문제였다.
+1부 결론 전체가 여기서 어긋났다. `density`가 1위로 보인 것은 순전히 단위 때문이고, 표준화 한 줄이면 드러나는 문제였다.
 
 **2. R² = 1.0은 축하할 일이 아니라 의심할 일이다.**
 중요도가 한 변수에 1.0으로 몰리고 나머지가 전부 0이면, 그 변수가 정답 자체일 가능성부터 확인해야 한다.
 
 **3. 중복 행은 조용히 성능을 부풀린다.**
-결측치는 확인했지만 중복은 확인하지 않았다. 그 결과 RandomForest가 실제보다 0.129만큼 좋아 보였고,
-선형모델은 멀쩡했기 때문에 비교만으로는 눈치챌 수 없었다.
+결측치는 확인했지만 중복은 확인하지 않았다. 적포도주에서 RandomForest가 0.129만큼,
+백포도주를 포함한 병합 데이터에서는 0.142만큼 좋아 보였고, 선형모델은 멀쩡했기 때문에 비교만으로는 눈치챌 수 없었다.
 
-**4. 남은 한계 — 이 재검증으로도 풀지 못한 것.**
-중복 240행이 입력 오류인지 같은 배치의 다른 병인지는 ID 컬럼이 없어 **판정 불가**다.
+**4. 전처리의 순서가 성능 수치를 만든다.**
+2부의 R² 0.712와 0.548 사이에는 모델 차이도, 데이터 차이도 없다. 복제를 분할 **전에** 했느냐 **후에** 했느냐뿐이다.
+리샘플링·스케일링·결측대치처럼 데이터 전체를 보는 연산은 반드시 분할 **후** 훈련셋에서만 수행해야 한다.
+
+**5. 변환은 특성에만 적용하고, 타겟을 건드렸다면 R²를 나란히 놓지 말아야 한다.**
+2부의 변환 비교 40여 셀이 전부 이 한 가지 때문에 무효가 됐다.
+"양수인 수치형 열 전부"라는 조건에 타겟이 조용히 포함된 것이 원인이다.
+
+**6. 하이퍼파라미터를 조정하지 않은 결과는 모델의 성능이 아니다.**
+Lasso의 R² ≈ 0을 "Lasso가 이 데이터를 설명하지 못한다"로 읽으면, 실제로는 alpha 하나로 해결되는 문제를 모델 탓으로 돌리게 된다.
+
+**7. 남은 한계 — 이 재검증으로도 풀지 못한 것.**
+중복 행이 입력 오류인지 같은 배치의 다른 병인지는 ID 컬럼이 없어 **판정 불가**다.
 등급 3·8이 각각 10건·18건뿐이라 극단 등급 예측은 어떤 모델로도 신뢰하기 어렵다.
 `quality`가 관능평가 중앙값이라는 점에서, 설명되지 않는 분산의 상당 부분은 평가자 간 차이일 수 있으나 데이터로는 확인할 수 없다.
+2부 `wine.ipynb`의 R²=1.0을 만든 특성 행렬 생성 코드는 어느 노트북에도 남아 있지 않아, 결과만 재현했을 뿐 메커니즘은 확정하지 못했다.
 """)
 
 nb['cells'] = C

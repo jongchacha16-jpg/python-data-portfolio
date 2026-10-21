@@ -31,15 +31,15 @@
 
 ## 프로젝트
 
-| # | 프로젝트 | 한 줄 요약 | 핵심 스택 |
-|---|---|---|---|
-| 1 | [**표정 분류 CNN → 이모지 매칭**](./인공지능%20프로젝트) | 3년 묵은 미완성 과제를 버그 수정·재학습으로 완성, 제로샷 LLM과 성능 비교까지 | TensorFlow/Keras |
-| 2 | [**Photo2Emoji 서비스**](./photo2emoji-service) | 위 파이프라인을 `POST /predict` API로 제품화 (pytest 10개·Docker 검증) | FastAPI, Docker |
-| 3 | [**분산 DB 회의실 예약**](./분산처리시스템_프로젝트) | MongoDB Replica Set failover 실측 + 보안 감사 2회 | MongoDB, Docker |
-| 4 | [**와인 품질 회귀분석**](./회귀분석_조별과제) | 두 개 트랙 재검증 — 주장·절차 13건 중 12건 정정 | statsmodels |
-| 5 | [**뇌졸중 발병 예측**](./데사프_프로젝트) | "정확도 95%의 함정"을 불균형 관점으로 재구축 | scikit-learn |
-| 6 | [**데이터 직무 연봉 예측**](./MachineLearning_Data_Related_Job_Salary) | 리키지로 알던 변수의 정체를 코드로 규명 | scikit-learn |
-| 7 | [**항공사 승객 만족도 예측** ↗](https://github.com/jongchacha16-jpg/airline-satisfaction-prediction) | 0.0005 개선을 잡음과 구분하는 실험 프로토콜 설계 (Kaggle) | LightGBM, Optuna |
+| # | 프로젝트 | 한 줄 요약 | 핵심 스택 | 상세 |
+|---|---|---|---|---|
+| 1 | [**표정 분류 CNN → 이모지 매칭**](./인공지능%20프로젝트) | 3년 묵은 미완성 과제를 버그 수정·재학습으로 완성, 제로샷 LLM과 성능 비교까지 | TensorFlow/Keras | [노션 ↗](https://topaz-soarer-390.notion.site/3cc28debe9df80848e44ff9232978b7c) |
+| 2 | [**Photo2Emoji 서비스**](./photo2emoji-service) | 위 파이프라인을 `POST /predict` API로 제품화 (pytest 10개·Docker 검증) | FastAPI, Docker | [노션 ↗](https://topaz-soarer-390.notion.site/3ff28debe9df8032a368e18059c584cd) |
+| 3 | [**분산 DB 회의실 예약**](./분산처리시스템_프로젝트) | MongoDB Replica Set failover 실측 + 보안 감사 2회 | MongoDB, Docker | [노션 ↗](https://topaz-soarer-390.notion.site/3ff28debe9df80f2ac09e4bdb2e648a3) |
+| 4 | [**와인 품질 회귀분석**](./회귀분석_조별과제) | 두 개 트랙 재검증 — 주장·절차 13건 중 12건 정정 | statsmodels | [노션 ↗](https://topaz-soarer-390.notion.site/3cc28debe9df80e5bf7ecbf4ea0437d0) |
+| 5 | [**뇌졸중 발병 예측**](./데사프_프로젝트) | "정확도 95%의 함정"을 불균형 관점으로 재구축 | scikit-learn | [노션 ↗](https://topaz-soarer-390.notion.site/65628debe9df830eb87381195d7f537e) |
+| 6 | [**데이터 직무 연봉 예측**](./MachineLearning_Data_Related_Job_Salary) | 리키지로 알던 변수의 정체를 코드로 규명 | scikit-learn | [노션 ↗](https://topaz-soarer-390.notion.site/85628debe9df82fd959c81bacdb35ed1) |
+| 7 | [**항공사 승객 만족도 예측** ↗](https://github.com/jongchacha16-jpg/airline-satisfaction-prediction) | 0.0005 개선을 잡음과 구분하는 실험 프로토콜 설계 (Kaggle) | LightGBM, Optuna | [노션 ↗](https://topaz-soarer-390.notion.site/40028debe9df8046a90bda5ccb613a72) |
 
 > 7번은 **별도 저장소**입니다 (SeSac AI 엔지니어링 과정 중간평가).
 >

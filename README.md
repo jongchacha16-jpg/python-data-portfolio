@@ -43,7 +43,7 @@
 | 5 | [**뇌졸중 발병 예측**](./데사프_프로젝트) | "정확도 95%의 함정"을 불균형 관점으로 재구축 | scikit-learn | [노션 ↗](https://topaz-soarer-390.notion.site/65628debe9df830eb87381195d7f537e) |
 | 6 | [**데이터 직무 연봉 예측**](./MachineLearning_Data_Related_Job_Salary) | 리키지로 알던 변수의 정체를 코드로 규명 | scikit-learn | [노션 ↗](https://topaz-soarer-390.notion.site/85628debe9df82fd959c81bacdb35ed1) |
 | 7 | [**항공사 승객 만족도 예측** ↗](https://github.com/jongchacha16-jpg/airline-satisfaction-prediction) | 0.0013 개선을 잡음과 구분하는 실험 프로토콜 설계 (Kaggle) | LightGBM, Optuna | [노션 ↗](https://topaz-soarer-390.notion.site/40028debe9df8046a90bda5ccb613a72) |
-| 8 | **CS RAG 튜터** (private) | 잘 돌던 RAG을 측정하니 코퍼스에 핵심 개념이 없고 어휘 검색이 작동한 적도 없었음 — 종단 Recall@5 0.694 → 0.903 | FastAPI, pgvector, Langfuse | — |
+| 8 | **CS RAG 튜터** (private) | 잘 돌던 RAG을 측정하니 코퍼스에 핵심 개념이 없고 어휘 검색이 작동한 적도 없었음 — 종단 Recall@5 0.694 → 0.903 | FastAPI, pgvector, Langfuse | [노션 ↗](https://topaz-soarer-390.notion.site/42428debe9df8012b2f1f73156ab0fdf) |
 
 > 7번은 **별도 저장소**이고(SeSac AI 엔지니어링 과정 중간평가), 8번은 **별도 private 저장소**입니다.
 >
